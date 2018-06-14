@@ -77,7 +77,7 @@ def plot_scatter_knn(X,y,k):
     Xsmall = X[indices]
     ysmall = y[indices]
     # from sklearn.model_selection import train_test_split
-    X_train, X_test, y_train, y_test = train_test_split(Xsmall, y,random_state=0)
+    X_train, X_test, y_train, y_test = train_test_split(Xsmall, ysmall,random_state=0)
     plot_knn(X_train, y_train, m_neighbours, 'uniform', X_test, y_test)
     return Xsmall, ysmall
 
