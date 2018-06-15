@@ -137,11 +137,11 @@ y_pred = []
 y_trainPred = []
 try:
     # number of neighbours
-    m_neighbours = 7 
+    m_neighbours = 20 
     # n row (randomly) from data
     n = 2000
     # k row (randomly) for scatter visualization 
-    k = 100
+    k = 200
     # Get data
     X_train, X_test, y_train, y_test = getData(n)
     print("==================================================")
