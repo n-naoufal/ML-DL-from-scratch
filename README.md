@@ -12,7 +12,8 @@ The decisive second round was decisive and polls showed Mr Macron with a firm le
 The data set was retrieved from https://www.data.gouv.fr/fr/posts/les-donnees-des-elections/ which is the open public data platform "data.gouv.fr" that hosts the data sets and records their reuses.
 
 The data set is cleaned in Jupyter notebook checking_cleaning_data.ipynb and is as follows: 
-![alt text](figures/dataset.PNG?raw=true "")
+
+![alt text](knn/figures/dataset.PNG?raw=true "")
 
 with three features: 
 * the ratio abstention/subscribers  
