@@ -1,11 +1,11 @@
 # Import libraries
 
 import pandas as pd
-from numpy import array, arange, where
+from numpy import array, arange, where, linalg, average, sum, random
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from time import process_time, perf_counter
-import  matplotlib.pyplot as plt 
+import  matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, BoundaryNorm
 import matplotlib.patches as mpatches
 from matplotlib.font_manager import FontProperties
@@ -14,14 +14,45 @@ def getData():
     df =  pd.read_pickle('df_clean')
     # dataset
     X = df.iloc[:,1:4].as_matrix()
-    y = df.iloc[:,4].as_matrix()
     listTowns = df.town
     # get the label axis list
     listAxis = list(df.iloc[:,1:4].columns)
-    return (X,y, listTowns, listAxis)
+    return (X, listTowns, listAxis)
 
+def fit(X, k, max_iter, tol):
+    centroids = {}
+    #initialize the centroids with the first 'k' elements
+    for i in range(k):
+        centroids[i] = X[i]
+    # iterate
+    for i in range(max_iter):
+        classes = {}
+        for i in range(k):
+            classes[i] = []
+        #Choose the nearest centroid
+        for col in X:
+            distances = [linalg.norm(col - centroids[point]) for point in centroids]
+            min_distance = distances.index(min(distances))
+            classes[min_distance].append(col)
+        # store previous
+        old = dict(centroids)
+			#Update the centroids
+        for clas in classes:
+            centroids[clas] = average(classes[clas], axis = 0)
+        for point in centroids:
+            old_centroid = old[point]
+            curr = centroids[point]
+            # break if positions don't change anymore
+            if sum((curr - old_centroid)/old_centroid * 100.0) <= tol:
+                break
+    return centroids,classes
 
-def plot_user_scatter(X, y, class_labels, i, j, listAxis):
+def predict(X, centroids):
+    distances = [linalg.norm(X - centroids[point]) for point in centroids]
+    clas = distances.index(min(distances))
+    return clas
+
+def plot_user_scatter(X, y, class_centers, class_labels, i, j, listAxis):
     
     num_labels = len(class_labels)
     x_min, x_max = X[:, i].min() - 1, X[:, i].max() + 1
@@ -37,7 +68,7 @@ def plot_user_scatter(X, y, class_labels, i, j, listAxis):
     cmap_bold = ListedColormap(color_array)
     bnorm = BoundaryNorm(arange(0, num_labels + 1, 1), ncolors=num_labels)
     plt.figure(figsize=(8, 6))
-
+    plt.scatter(class_centers[:,i],class_centers[:,j], cmap=cmap_bold, s=200, alpha=0.5, marker="x")
     plt.scatter(X[:, i], X[:, j], s=65, c=y, cmap=cmap_bold, norm = bnorm, alpha = 0.40, edgecolor='black', lw = 1)
     plt.xlabel('{}'.format(listAxis[i]))
     plt.ylabel('{}'.format(listAxis[j]))
@@ -54,10 +85,17 @@ def plot_user_scatter(X, y, class_labels, i, j, listAxis):
     plt.show()
 
 
-# number of neighbours
-nclusters = 10 
+# number of clusters
+nclusters = 5 
+# tolerance
+tol =1e-4;
+# max iterations
+max_iter = 100
 # Get data
-X,y, listTowns, listAxis = getData()
+X, listTowns, listAxis = getData()
+# get a portion of the data to simplify visualization
+perm = random.permutation(X.shape[0])
+X = X[perm[:500]]
 # normalize data 
 X_normalized = StandardScaler().fit(X).transform(X)  
 # get labels
@@ -73,7 +111,9 @@ print("==================================================")
 t_per_start = perf_counter()
 t_pro_start = process_time()
     
-
+centroids, classes = fit(X, nclusters, max_iter, tol)
+#cla = predict(X, centroids)
+    
 t_per_stop = perf_counter()
 t_pro_stop = process_time()
 print("--------------------------------------------------")
@@ -82,13 +122,24 @@ print("CPU process time: %.1f [min]" % ((t_pro_stop-t_pro_start)/60))
 print("--------------------------------------------------") 
 
 
+# Plotting starts here
+colors = 10*["r", "g", "c", "b", "k"]
+plt.figure()
+for point in centroids:
+    plt.scatter(centroids[point][0], centroids[point][1], s = 130, marker = "x")
+for cla in classes:
+		color = colors[cla]
+		for cols in classes[cla]:
+			plt.scatter(cols[0], cols[1], color = color,s = 30)
+plt.show()
+
 print("==================================================")
 print(">>> SCKIT LEARN Kmeans CLUSTERING simulation <<<" )
 print("==================================================")
 t_per_start1 = perf_counter()
 t_pro_start1 = process_time()
 # applying the model
-kmeans = KMeans(n_clusters = nclusters)
+kmeans = KMeans(n_clusters = nclusters, max_iter = max_iter, tol = tol)
 kmeans.fit(X)
 pred_classes = kmeans.predict(X)
 
@@ -109,7 +160,7 @@ print("CPU process time: %.1f [min]" % ((t_pro_stop1-t_pro_start1)/60))
 print("--------------------------------------------------")
 
 # visualize the kmeans clustering scatter
-plot_user_scatter(X, kmeans.labels_, ['Cluster {}'.format(i+1) for i in range(nclusters) ], 0,  1, listAxis)
-plot_user_scatter(X, kmeans.labels_, ['Cluster {}'.format(i+1) for i in range(nclusters) ], 0,  2, listAxis)
-plot_user_scatter(X, kmeans.labels_, ['Cluster {}'.format(i+1) for i in range(nclusters) ], 1,  2, listAxis)
+plot_user_scatter(X, kmeans.labels_,kmeans.cluster_centers_, ['Cluster {}'.format(i+1) for i in range(nclusters) ], 0,  1, listAxis)
+plot_user_scatter(X, kmeans.labels_,kmeans.cluster_centers_, ['Cluster {}'.format(i+1) for i in range(nclusters) ], 0,  2, listAxis)
+plot_user_scatter(X, kmeans.labels_,kmeans.cluster_centers_, ['Cluster {}'.format(i+1) for i in range(nclusters) ], 1,  2, listAxis)
 
